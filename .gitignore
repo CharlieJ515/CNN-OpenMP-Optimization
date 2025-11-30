@@ -1,0 +1,4 @@
+*.exe
+example
+.vscode
+baby_512x512_output*
