@@ -1,6 +1,7 @@
 #pragma once
 #include "Imagelib.h"
 #include "CTensor.h"
+#include "omp.h"
 
 #define MEAN_INIT 0
 #define LOAD_INIT 1
@@ -44,18 +45,15 @@ public:
 		input->get_info(nH, nW, nC);
 		Tensor3D *output = new Tensor3D(nH, nW, nC);
 
+		#pragma omp parallel for collapse(3)
 		for (int h = 0; h < nH; h++)
-		{
 			for (int w = 0; w < nW; w++)
-			{
 				for (int c = 0; c < nC; c++)
 				{
 					double val = input->get_elem(h, w, c);
 					val = val > 0 ? val : 0;
 					output->set_elem(h, w, c, val);
 				}
-			}
-		}
 
 		cout << name << " is finished" << endl;
 		return output;
@@ -164,6 +162,7 @@ public:
 		Tensor3D *output = new Tensor3D(nH, nW, fC_out);
 
 		int offset = (fK - 1) / 2;
+		#pragma omp parallel for collapse(3)
 		for (int c_o = 0; c_o < fC_out; c_o++)
 			for (int h = 0; h < nH - fK + 1; h++)
 				for (int w = 0; w < nW - fK + 1; w++)
