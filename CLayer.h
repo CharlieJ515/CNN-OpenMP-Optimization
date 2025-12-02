@@ -45,7 +45,7 @@ public:
 		input->get_info(nH, nW, nC);
 		Tensor3D *output = new Tensor3D(nH, nW, nC);
 
-		#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
 		for (int w = 0; w < nW; w++)
 			for (int h = 0; h < nH; h++)
 				for (int c = 0; c < nC; c++)
@@ -82,8 +82,8 @@ class Layer_Conv : public Layer
 private:
 	string filename_weight;
 	string filename_bias;
-	double ****weight_tensor; // fK x fK x _fC_in x _fC_out 크기를 가지는 4차원 배열
-	double *bias_tensor;	  // _fC_out 크기를 가지는 1차원 배열 (bias는 각 filter당 1개 존재)
+	double *weight_tensor; // fK x fK x _fC_in x _fC_out 크기를 가지는 4차원 배열
+	double *bias_tensor;   // _fC_out 크기를 가지는 1차원 배열 (bias는 각 filter당 1개 존재)
 public:
 	Layer_Conv(string _name, int _fK, int _fC_in, int _fC_out, int init_type, string _filename_weight = "", string _filename_bias = "") : Layer(_name, _fK, _fC_in, _fC_out), filename_weight(_filename_weight), filename_bias(_filename_bias)
 	{
@@ -93,8 +93,8 @@ public:
 		// 동작3: init() 함수는 init_type를 입력으로 받아 가중치를 초기화 함
 		// 함수1: dmatrix4D()와 dmatrix1D()를 사용하여 1차원, 4차원 배열을 동적 할당할 것
 
-		weight_tensor = dmatrix4D(fC_out, fK, fK, fC_in);
-		bias_tensor = dmatrix1D(fC_out);
+		weight_tensor = new double[fC_out * fK * fK * fC_in];
+		bias_tensor = new double[fC_out];
 
 		init(init_type);
 	}
@@ -110,14 +110,22 @@ public:
 		{
 			ifstream fin_w(filename_weight), fin_b(filename_bias);
 			for (int o = 0; o < fC_out; o++)
+			{
+				int stride_o = fK * fK * fC_in;
 				for (int i = 0; i < fC_in; i++)
 					for (int h = 0; h < fK; h++)
+					{
+						int stride_h = fC_in;
 						for (int w = 0; w < fK; w++)
 						{
+							int stride_w = fK * fC_in;
+
 							double val;
 							fin_w >> val;
-							weight_tensor[o][w][h][i] = val;
+							weight_tensor[o * stride_o + w * stride_w + h * fC_in + i] = val;
 						}
+					}
+			}
 
 			for (int i = 0; i < fC_out; i++)
 			{
@@ -133,10 +141,19 @@ public:
 
 		double value = 1 / double(fK * fK * fC_in);
 		for (int o = 0; o < fC_out; o++)
+		{
+			int stride_o = fK * fK * fC_in;
 			for (int w = 0; w < fK; w++)
+			{
+				int stride_w = fK * fC_in;
 				for (int h = 0; h < fK; h++)
+				{
+					int stride_h = fC_in;
 					for (int i = 0; i < fC_in; i++)
-						weight_tensor[o][w][h][i] = value;
+						weight_tensor[o * stride_o + w * stride_w + h * stride_h + i] = value;
+				}
+			}
+		}
 
 		for (int i = 0; i < fC_out; i++)
 			bias_tensor[i] = 0;
@@ -147,8 +164,8 @@ public:
 		// 동작1: weight_tensor와 bias_tensor를 동적 할당 해제할 것
 		// 함수1: free_dmatrix4D(), free_dmatrix1D() 함수를 사용
 
-		free_dmatrix4D(weight_tensor, fC_out, fK, fK, fC_in);
-		free_dmatrix1D(bias_tensor, fC_out);
+		delete[] weight_tensor;
+		delete[] bias_tensor;
 	}
 	Tensor3D *forward(const Tensor3D *input) override
 	{
@@ -160,7 +177,7 @@ public:
 		Tensor3D *output = new Tensor3D(nH, nW, fC_out);
 
 		int offset = (fK - 1) / 2;
-		#pragma omp parallel for collapse(2)
+#pragma omp parallel for collapse(2)
 		for (int c_o = 0; c_o < fC_out; c_o++)
 			for (int w = 0; w < nW - fK + 1; w++)
 				for (int h = 0; h < nH - fK + 1; h++)
@@ -169,7 +186,8 @@ public:
 					for (int dw = 0; dw < fK; dw++)
 						for (int dh = 0; dh < fK; dh++)
 							for (int c_i = 0; c_i < fC_in; c_i++)
-								val += input->get_elem(h + dh, w + dw, c_i) * weight_tensor[c_o][dw][dh][c_i];
+								val += input->get_elem(h + dh, w + dw, c_i) *
+									   weight_tensor[c_o * fK * fK * fC_in + dw * fK * fC_in + dh * fC_in + c_i];
 					val += bias_tensor[c_o];
 					output->set_elem(h + offset, w + offset, c_o, val);
 				}
