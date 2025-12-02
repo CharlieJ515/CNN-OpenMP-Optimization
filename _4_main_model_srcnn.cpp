@@ -1,4 +1,4 @@
-#include <ctime>
+#include "omp.h"
 #include "ImageLib.h"
 #include "CModel.h"
 using namespace std;
@@ -16,10 +16,10 @@ int main()
 	model.add_layer(new Layer_ReLU("Relu2", 1, 32, 32));
 	model.add_layer(new Layer_Conv("Conv3", 5, 32, 1, LOAD_INIT, "model/weights_conv3_5x5x32x1.txt", "model/biases_conv3_1.txt"));
 
-	clock_t start = clock();
+	double start = omp_get_wtime();
 	model.test("baby_512x512_input.bmp", "baby_512x512_output_srcnn.bmp");
-	clock_t end = clock();
-	double elapsed = double(end - start) / CLOCKS_PER_SEC;
+	double end = omp_get_wtime();
+	double elapsed = end - start;
 
 	model.print_layer_info();
 	model.print_tensor_info();
