@@ -46,8 +46,8 @@ public:
 		Tensor3D *output = new Tensor3D(nH, nW, nC);
 
 		#pragma omp parallel for collapse(2)
-		for (int h = 0; h < nH; h++)
-			for (int w = 0; w < nW; w++)
+		for (int w = 0; w < nW; w++)
+			for (int h = 0; h < nH; h++)
 				for (int c = 0; c < nC; c++)
 				{
 					double val = input->get_elem(h, w, c);
@@ -73,7 +73,7 @@ public:
 		// (구현할 것)
 		// 동작: Tensor3D의 print()와 마찬가지로 차원의 크기를 화면에 출력
 
-		cout << name << ": " << fK << "*" << fK << "*" << fC_in << "*" << fC_out << endl;
+		cout << name << ": " << fC_out << "*" << fK << "*" << fK << "*" << fC_in << endl;
 	}
 };
 
@@ -93,7 +93,7 @@ public:
 		// 동작3: init() 함수는 init_type를 입력으로 받아 가중치를 초기화 함
 		// 함수1: dmatrix4D()와 dmatrix1D()를 사용하여 1차원, 4차원 배열을 동적 할당할 것
 
-		weight_tensor = dmatrix4D(fK, fK, fC_in, fC_out);
+		weight_tensor = dmatrix4D(fC_out, fK, fK, fC_in);
 		bias_tensor = dmatrix1D(fC_out);
 
 		init(init_type);
@@ -116,7 +116,7 @@ public:
 						{
 							double val;
 							fin_w >> val;
-							weight_tensor[h][w][i][o] = val;
+							weight_tensor[o][w][h][i] = val;
 						}
 
 			for (int i = 0; i < fC_out; i++)
@@ -132,13 +132,11 @@ public:
 		}
 
 		double value = 1 / double(fK * fK * fC_in);
-		for (int w = 0; w < fK; w++)
-			for (int h = 0; h < fK; h++)
-				for (int i = 0; i < fC_in; i++)
-					for (int o = 0; o < fC_out; o++)
-					{
-						weight_tensor[h][w][i][o] = value;
-					}
+		for (int o = 0; o < fC_out; o++)
+			for (int w = 0; w < fK; w++)
+				for (int h = 0; h < fK; h++)
+					for (int i = 0; i < fC_in; i++)
+						weight_tensor[o][w][h][i] = value;
 
 		for (int i = 0; i < fC_out; i++)
 			bias_tensor[i] = 0;
@@ -149,7 +147,7 @@ public:
 		// 동작1: weight_tensor와 bias_tensor를 동적 할당 해제할 것
 		// 함수1: free_dmatrix4D(), free_dmatrix1D() 함수를 사용
 
-		free_dmatrix4D(weight_tensor, fK, fK, fC_in, fC_out);
+		free_dmatrix4D(weight_tensor, fC_out, fK, fK, fC_in);
 		free_dmatrix1D(bias_tensor, fC_out);
 	}
 	Tensor3D *forward(const Tensor3D *input) override
@@ -164,14 +162,14 @@ public:
 		int offset = (fK - 1) / 2;
 		#pragma omp parallel for collapse(2)
 		for (int c_o = 0; c_o < fC_out; c_o++)
-			for (int h = 0; h < nH - fK + 1; h++)
-				for (int w = 0; w < nW - fK + 1; w++)
+			for (int w = 0; w < nW - fK + 1; w++)
+				for (int h = 0; h < nH - fK + 1; h++)
 				{
 					double val = 0;
-					for (int c_i = 0; c_i < fC_in; c_i++)
+					for (int dw = 0; dw < fK; dw++)
 						for (int dh = 0; dh < fK; dh++)
-							for (int dw = 0; dw < fK; dw++)
-								val += input->get_elem(h + dh, w + dw, c_i) * weight_tensor[dh][dw][c_i][c_o];
+							for (int c_i = 0; c_i < fC_in; c_i++)
+								val += input->get_elem(h + dh, w + dw, c_i) * weight_tensor[c_o][dw][dh][c_i];
 					val += bias_tensor[c_o];
 					output->set_elem(h + offset, w + offset, c_o, val);
 				}
@@ -192,6 +190,6 @@ public:
 	{
 		// (구현할 것)
 		// 동작: Layer_ReLU와 동일
-		cout << name << ": " << fK << "*" << fK << "*" << fC_in << "*" << fC_out << endl;
+		cout << name << ": " << fC_out << "*" << fK << "*" << fK << "*" << fC_in << endl;
 	}
 };
