@@ -45,7 +45,7 @@ public:
 		input->get_info(nH, nW, nC);
 		Tensor3D *output = new Tensor3D(nH, nW, nC);
 
-		#pragma omp parallel for collapse(3)
+		#pragma omp parallel for collapse(2)
 		for (int h = 0; h < nH; h++)
 			for (int w = 0; w < nW; w++)
 				for (int c = 0; c < nC; c++)
@@ -162,7 +162,7 @@ public:
 		Tensor3D *output = new Tensor3D(nH, nW, fC_out);
 
 		int offset = (fK - 1) / 2;
-		#pragma omp parallel for collapse(3)
+		#pragma omp parallel for collapse(2)
 		for (int c_o = 0; c_o < fC_out; c_o++)
 			for (int h = 0; h < nH - fK + 1; h++)
 				for (int w = 0; w < nW - fK + 1; w++)
