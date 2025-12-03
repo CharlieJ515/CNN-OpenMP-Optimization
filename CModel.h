@@ -46,12 +46,18 @@ public:
 		// 동작1: 현재 tensors의 0번째 element에 영상(CNN의 입력)이 이미 저장되어 있음
 		// 동작2: tensors vector의 i번째 tensor를 layers vector에 있는 i번째 layer의 forward함수로 입력받고, 그 결과를 tensors vector의 i+1번째 tensor로 저장함
 		// 동작3: 결과적으로 tensors의 가장 마지막 tensor는 CNN의 출력값이 됨 (이 출력값은 (3)에서 1차원 배열로 변환되어 이미지 파일에 저장됨
-		for (int i = 0; i < layers.size(); i++)
+		#pragma omp parallel
 		{
-			Layer *layer = layers[i];
-			Tensor3D *input = tensors.back();
-			Tensor3D *output = layer->forward(input);
-			tensors.push_back(output);
+			#pragma omp single
+			{
+			for (int i = 0; i < layers.size(); i++)
+			{
+				Layer *layer = layers[i];
+				Tensor3D *input = tensors.back();
+				Tensor3D *output = layer->forward(input);
+				tensors.push_back(output);
+			}
+			}
 		}
 		cout << "Super-resolution is complete..." << endl;
 
