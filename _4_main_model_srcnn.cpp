@@ -24,6 +24,6 @@ int main()
 	model.print_layer_info();
 	model.print_tensor_info();
 
-	cout << "Elapsed time: " << elapsed << " seconds" << endl;
+	cout << "Elapsed time: " << fixed << setprecision(6) << elapsed << " seconds" << endl;
 	return 0;
 }
