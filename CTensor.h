@@ -6,7 +6,7 @@
 class Tensor3D
 {
 private:
-	double ***tensor;
+	double *tensor;
 	int nH; // height
 	int nW; // width
 	int nC; // channel
@@ -18,7 +18,7 @@ public:
 		//       2)그 후 모든 element의 값을 0으로 초기화
 		// 사용함수: dmatrix3D(): 3차원 행렬을 동적 할당해서 pointer를 반환하는 함수
 
-		tensor = dmatrix3D(nW, nH, nC);
+		tensor = new double[nW * nH * nC];
 	}
 	~Tensor3D()
 	{
@@ -26,16 +26,16 @@ public:
 		// 동작: 3차원 동적 배열인 tensor를 할당 해제
 		// 사용함수: free_dmatrix3D(): 3차원 동적 할당된 행렬을 할당 해제하는 함수
 
-		free_dmatrix3D(tensor, nW, nH, nC);
+		delete[] tensor;
 		nC = nH = nW = 0;
 	}
-	void set_elem(int _h, int _w, int _c, double _val) { tensor[_w][_h][_c] = _val; }
+	void set_elem(int _h, int _w, int _c, double _val) { tensor[_w * nH * nC + _h * nC + _c] = _val; }
 	double get_elem(int _h, int _w, int _c) const
 	{
 		// (구현할 것)
 		// 동작: 행=_h, 열= _w, 채널= _c 위치 element를 반환할 것
 
-		return tensor[_w][_h][_c];
+		return tensor[_w * nH * nC + _h * nC + _c];
 	}
 
 	void get_info(int &_nH, int &_nW, int &_nC) const
@@ -48,8 +48,8 @@ public:
 		_nC = nC;
 	}
 
-	void set_tensor(double ***_tensor) { tensor = _tensor; }
-	double ***get_tensor() const { return tensor; }
+	void set_tensor(double *_tensor) { tensor = _tensor; }
+	double *get_tensor() const { return tensor; }
 
 	void print() const
 	{

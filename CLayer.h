@@ -45,7 +45,7 @@ public:
 		input->get_info(nH, nW, nC);
 		Tensor3D *output = new Tensor3D(nH, nW, nC);
 
-		#pragma omp parallel for collapse(3)
+#pragma omp parallel for collapse(3)
 		for (int w = 0; w < nW; w++)
 			for (int h = 0; h < nH; h++)
 				for (int c = 0; c < nC; c++)
@@ -140,20 +140,14 @@ public:
 		}
 
 		double value = 1 / double(fK * fK * fC_in);
+		int stride_o = fK * fK * fC_in;
+		int stride_w = fK * fC_in;
+		int stride_h = fC_in;
 		for (int o = 0; o < fC_out; o++)
-		{
-			int stride_o = fK * fK * fC_in;
 			for (int w = 0; w < fK; w++)
-			{
-				int stride_w = fK * fC_in;
 				for (int h = 0; h < fK; h++)
-				{
-					int stride_h = fC_in;
 					for (int i = 0; i < fC_in; i++)
 						weight_tensor[o * stride_o + w * stride_w + h * stride_h + i] = value;
-				}
-			}
-		}
 
 		for (int i = 0; i < fC_out; i++)
 			bias_tensor[i] = 0;
@@ -177,7 +171,10 @@ public:
 		Tensor3D *output = new Tensor3D(nH, nW, fC_out);
 
 		int offset = (fK - 1) / 2;
-		#pragma omp parallel for collapse(3)
+		int stride_o = fK * fK * fC_in;
+		int stride_w = fK * fC_in;
+		int stride_h = fC_in;
+#pragma omp parallel for collapse(3)
 		for (int c_o = 0; c_o < fC_out; c_o++)
 			for (int w = 0; w < nW - fK + 1; w++)
 				for (int h = 0; h < nH - fK + 1; h++)
@@ -187,7 +184,7 @@ public:
 						for (int dh = 0; dh < fK; dh++)
 							for (int c_i = 0; c_i < fC_in; c_i++)
 								val += input->get_elem(h + dh, w + dw, c_i) *
-									   weight_tensor[c_o * fK * fK * fC_in + dw * fK * fC_in + dh * fC_in + c_i];
+									   weight_tensor[c_o * stride_o + dw * stride_w + dh * stride_h + c_i];
 					val += bias_tensor[c_o];
 					output->set_elem(h + offset, w + offset, c_o, val);
 				}
