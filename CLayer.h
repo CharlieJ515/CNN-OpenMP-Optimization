@@ -175,9 +175,9 @@ public:
 		int stride_w = fK * fC_in;
 		int stride_h = fC_in;
 		#pragma omp for collapse(3)
-		for (int c_o = 0; c_o < fC_out; c_o++)
-			for (int w = 0; w < nW - fK + 1; w++)
-				for (int h = 0; h < nH - fK + 1; h++)
+		for (int w = 0; w < nW - fK + 1; w++)
+			for (int h = 0; h < nH - fK + 1; h++)
+				for (int c_o = 0; c_o < fC_out; c_o++)
 				{
 					double val = 0;
 					for (int dw = 0; dw < fK; dw++)
