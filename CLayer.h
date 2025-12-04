@@ -172,19 +172,20 @@ public:
 
 		int offset = (fK - 1) / 2;
 		int stride_o = fK * fK * fC_in;
-		int stride_w = fK * fC_in;
-		int stride_h = fC_in;
 		#pragma omp for collapse(3)
 		for (int w = 0; w < nW - fK + 1; w++)
 			for (int h = 0; h < nH - fK + 1; h++)
 				for (int c_o = 0; c_o < fC_out; c_o++)
 				{
 					double val = 0;
+					double* filter_ptr = &weight_tensor[c_o*stride_o];
 					for (int dw = 0; dw < fK; dw++)
 						for (int dh = 0; dh < fK; dh++)
-							for (int c_i = 0; c_i < fC_in; c_i++)
-								val += input->get_elem(h + dh, w + dw, c_i) *
-									   weight_tensor[c_o * stride_o + dw * stride_w + dh * stride_h + c_i];
+							for (int c_i = 0; c_i < fC_in; c_i++){
+								val += input->get_elem(h + dh, w + dw, c_i) * *filter_ptr;
+								filter_ptr++;
+							}
+
 					val += bias_tensor[c_o];
 					output->set_elem(h + offset, w + offset, c_o, val);
 				}
