@@ -169,21 +169,26 @@ public:
 		int nH, nW, nC;
 		input->get_info(nH, nW, nC);
 		Tensor3D *output = new Tensor3D(nH, nW, fC_out);
+		const double* input_raw = input->get_tensor();
 
 		int offset = (fK - 1) / 2;
 		int stride_o = fK * fK * fC_in;
+		int stride_h_in = nW * nC;
+		int stride_w_in = nC;
 		#pragma omp for collapse(3)
 		for (int w = 0; w < nW - fK + 1; w++)
 			for (int h = 0; h < nH - fK + 1; h++)
 				for (int c_o = 0; c_o < fC_out; c_o++)
 				{
 					double val = 0;
-					double* filter_ptr = &weight_tensor[c_o*stride_o];
+					const double* w_filter_ptr = &weight_tensor[c_o*stride_o];
+					const double* v_filter_ptr = &input_raw[h * stride_h_in + w * stride_w_in];
 					for (int dw = 0; dw < fK; dw++)
 						for (int dh = 0; dh < fK; dh++)
 							for (int c_i = 0; c_i < fC_in; c_i++){
-								val += input->get_elem(h + dh, w + dw, c_i) * *filter_ptr;
-								filter_ptr++;
+								val += *v_filter_ptr * *w_filter_ptr;
+								w_filter_ptr++;
+								v_filter_ptr++;
 							}
 
 					val += bias_tensor[c_o];
